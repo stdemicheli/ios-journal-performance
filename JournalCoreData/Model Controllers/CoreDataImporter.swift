@@ -32,7 +32,7 @@ class CoreDataImporter {
     
     func sync(entries: [EntryRepresentation], completion: @escaping (Error?) -> Void = { _ in }) {
         print("Started syncing...")
-        let localEntries = self.fetchAllEntriesFromPersistentStore(in: self.context)
+        let localEntries = self.fetchAllEntriesFromPersistentStore(for: entries, in: self.context)
         
         self.context.perform {
             for entryRep in entries {
@@ -75,8 +75,10 @@ class CoreDataImporter {
         return result
     }
     
-    private func fetchAllEntriesFromPersistentStore(in context: NSManagedObjectContext) -> [String : Entry] {
+    private func fetchAllEntriesFromPersistentStore(for entries: [EntryRepresentation], in context: NSManagedObjectContext) -> [String : Entry] {
         let fetchRequest: NSFetchRequest<Entry> = Entry.fetchRequest()
+        let identifiers: [String] = entries.map { $0.identifier! }
+        fetchRequest.predicate = NSPredicate(format: "identifier IN %@", identifiers)
         
         var result: [String : Entry] = [:]
         do {
