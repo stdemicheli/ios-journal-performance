@@ -14,19 +14,39 @@ class CoreDataImporter {
         self.context = context
     }
     
+//    func sync(entries: [EntryRepresentation], completion: @escaping (Error?) -> Void = { _ in }) {
+//        self.context.perform {
+//            for entryRep in entries {
+//                guard let identifier = entryRep.identifier else { continue }
+//
+//                let entry = self.fetchSingleEntryFromPersistentStore(with: identifier, in: self.context)
+//                if let entry = entry, entry != entryRep {
+//                    self.update(entry: entry, with: entryRep)
+//                } else if entry == nil {
+//                    _ = Entry(entryRepresentation: entryRep, context: self.context)
+//                }
+//            }
+//            completion(nil)
+//        }
+//    }
+    
     func sync(entries: [EntryRepresentation], completion: @escaping (Error?) -> Void = { _ in }) {
+        print("Started syncing...")
+        let localEntries = self.fetchAllEntriesFromPersistentStore(in: self.context)
         
         self.context.perform {
             for entryRep in entries {
                 guard let identifier = entryRep.identifier else { continue }
                 
-                let entry = self.fetchSingleEntryFromPersistentStore(with: identifier, in: self.context)
+               let entry = localEntries[identifier]
+                
                 if let entry = entry, entry != entryRep {
                     self.update(entry: entry, with: entryRep)
                 } else if entry == nil {
                     _ = Entry(entryRepresentation: entryRep, context: self.context)
                 }
             }
+            print("Sync complete.")
             completion(nil)
         }
     }
@@ -51,6 +71,21 @@ class CoreDataImporter {
             result = try context.fetch(fetchRequest).first
         } catch {
             NSLog("Error fetching single entry: \(error)")
+        }
+        return result
+    }
+    
+    private func fetchAllEntriesFromPersistentStore(in context: NSManagedObjectContext) -> [String : Entry] {
+        let fetchRequest: NSFetchRequest<Entry> = Entry.fetchRequest()
+        
+        var result: [String : Entry] = [:]
+        do {
+            let fetchedEntries = try context.fetch(fetchRequest)
+            for entry in fetchedEntries {
+                result[entry.identifier!] = entry
+            }
+        } catch {
+            NSLog("Error fetching all entries: \(error)")
         }
         return result
     }
